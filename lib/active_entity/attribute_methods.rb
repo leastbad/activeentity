@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "concurrent/map"
-require "mutex_m"
 require "active_support/core_ext/enumerable"
 
 module ActiveEntity
@@ -516,7 +515,16 @@ module ActiveEntity
     RESTRICTED_CLASS_METHODS = %w(private public protected allocate new name parent superclass)
 
     class GeneratedAttributeMethods < Module #:nodoc:
-      include Mutex_m
+      # mutex_m was removed from Ruby 3.4's default gems; use an internal
+      # mutex instead, mirroring the fix in Rails 7.1 (rails/rails#49371)
+      def initialize
+        super
+        @mutex = Mutex.new
+      end
+
+      def synchronize(&block)
+        @mutex.synchronize(&block)
+      end
     end
 
     class << self
